@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
+from flask import send_from_directory
 from extensions import db, migrate, jwt
 from routes.auth import auth_bp
 from routes.transactions import trans_bp
@@ -12,6 +13,16 @@ from routes.settings import settings_bp
 import os
 import traceback
 
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_react(path):
+    static_folder = os.path.join(app.root_path, "static")
+
+    if path != "" and os.path.exists(os.path.join(static_folder, path)):
+        return send_from_directory(static_folder, path)
+
+    return send_from_directory(static_folder, "index.html")
+    
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
