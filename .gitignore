@@ -1,0 +1,18 @@
+# node
+node_modules
+dist
+build
+
+# python
+__pycache__
+*.pyc
+venv
+
+# env
+.env
+
+# docker
+*.log
+
+# mac/windows
+.DS_Store

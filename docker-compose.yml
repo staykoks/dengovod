@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: financedb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d financedb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    command: ./entrypoint.sh
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/static/uploads
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/financedb
+      JWT_SECRET_KEY: super-secret-production-key
+      FLASK_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./uploads:/usr/share/nginx/html/uploads
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
