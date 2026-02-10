@@ -1,34 +1,45 @@
-#################################
-# 1️⃣ Frontend build
-#################################
+# ------------------------------
+# Stage 1: Build Frontend
+# ------------------------------
 FROM node:20-alpine AS frontend-build
 
 WORKDIR /app/frontend
+
+# Копируем package.json и package-lock.json для кеширования слоёв
 COPY frontend/package*.json ./
+
 RUN npm install
 
-COPY frontend .
+# Копируем исходники фронтенда
+COPY frontend/ ./
+
+# Собираем фронтенд
 RUN npm run build
 
+# ------------------------------
+# Stage 2: Build Backend
+# ------------------------------
+FROM python:3.11-slim AS backend-build
 
-#################################
-# 2️⃣ Backend
-#################################
-FROM python:3.11-slim
+WORKDIR /app/backend
 
-WORKDIR /app
-
-# python deps
-COPY backend/requirements.txt .
+# Устанавливаем зависимости
+COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# backend code
-COPY backend .
+# Копируем весь backend
+COPY backend/ ./
 
-# copy frontend build
+# Копируем собранный фронтенд из предыдущего этапа
 COPY --from=frontend-build /app/frontend/dist ./static
 
-# expose
+# ------------------------------
+# Stage 3: Run App
+# ------------------------------
 EXPOSE 8000
 
+# Создаём переменную app для Gunicorn
+ENV FLASK_APP=app.py
+
+# Запускаем Gunicorn
 CMD ["gunicorn", "-b", "0.0.0.0:8000", "app:app"]
