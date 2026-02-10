@@ -1,7 +1,6 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from config import Config
-from flask import send_from_directory
 from extensions import db, migrate, jwt
 from routes.auth import auth_bp
 from routes.transactions import trans_bp
@@ -13,18 +12,8 @@ from routes.settings import settings_bp
 import os
 import traceback
 
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>")
-def serve_react(path):
-    static_folder = os.path.join(app.root_path, "static")
-
-    if path != "" and os.path.exists(os.path.join(static_folder, path)):
-        return send_from_directory(static_folder, path)
-
-    return send_from_directory(static_folder, "index.html")
-    
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder="static")
     app.config.from_object(Config)
 
     # Ensure upload folder exists
@@ -46,6 +35,15 @@ def create_app():
     app.register_blueprint(budget_bp, url_prefix='/api/budgets')
     app.register_blueprint(currency_bp, url_prefix='/api/currencies')
     app.register_blueprint(settings_bp, url_prefix='/api/settings')
+
+    # --- React SPA Route ---
+    @app.route("/", defaults={"path": ""})
+    @app.route("/<path:path>")
+    def serve_react(path):
+        static_folder = app.static_folder
+        if path != "" and os.path.exists(os.path.join(static_folder, path)):
+            return send_from_directory(static_folder, path)
+        return send_from_directory(static_folder, "index.html")
 
     # Global Error Handler for debugging 500s
     @app.errorhandler(Exception)
